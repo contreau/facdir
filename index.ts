@@ -1,59 +1,112 @@
 import { readdir } from "node:fs/promises";
 import { Window } from "happy-dom";
-import type { nameFields, facultyCollection, longNames } from "./types";
+import type { HTMLAnchorElement } from "happy-dom/src/index.ts";
+import type { nameFields, facultyCollection, namesByDepartment } from "./types";
+import { checkDirectory, formatLongNames } from "./helpers";
 
-// gather all html file names into one array
+// * Gather all html file names into one array
 const html_fileNames: string[] = [];
 const html_dir = await readdir("./html");
 for (let file of html_dir) {
   html_fileNames.push(file);
 }
 
-// iteratively read the html files into the script and process
-// (limited for now until I get the full data)
-
-// catches all names that have more than one ' ' between names - will likely need to manually adjust their entries
-// this can be saved as its own json file
+// * Data to be written to JSON
 const all_profiles: Array<facultyCollection> = [];
-const long_names: longNames = {};
+const long_names: namesByDepartment = {};
+const missing_from_directory: namesByDepartment = {};
 
+// * BEGIN FILE PROCESSING
+console.clear();
 for (let filename of html_fileNames) {
   const facultyCollection: facultyCollection = {
     department: "",
     profiles: [],
   };
   const file = Bun.file(`./html/${filename}`);
+  console.log(`Processing ${filename}...`);
   const file_text = await file.text();
   const department = filename.split(".html")[0];
+
+  // * Initialize arrays in long_names and missing_profiles directories
   if (!long_names[`${department}`]) {
     long_names[`${department}`] = [];
   }
+  if (!missing_from_directory[`${department}`]) {
+    missing_from_directory[`${department}`] = [];
+  }
   facultyCollection.department = department;
-  // query the <a> tags holding the faculty names
+
+  // * Create the 'DOM' for the given html file
   const window = new Window();
   const document = window.document;
   document.body.innerHTML = file_text;
-  const names = Array.from(document.querySelectorAll("p.mdbluetext a")).map(
-    (n) => {
-      let fields: nameFields;
-      const split_name: string[] = n.textContent.split(" ");
-      if (split_name.length > 2) {
-        long_names[`${department}`].push(n.textContent);
-        const last_name_split = split_name.slice(1, split_name.length);
-        const lastName = last_name_split.join(" ");
-        fields = {
-          firstName: split_name[0],
-          lastName: lastName,
-        };
-      } else {
-        fields = {
-          firstName: split_name[0],
-          lastName: split_name[1],
-        };
-      }
-      return fields;
+
+  // * Loop through the <a> tags to process names
+  const name_anchors = Array.from(document.querySelectorAll("p.mdbluetext a"));
+  const names: nameFields[] = [];
+  for (const a of name_anchors) {
+    const anchor = a as unknown as HTMLAnchorElement;
+    const inDirectory: boolean = await checkDirectory(anchor.href);
+    if (!inDirectory) {
+      missing_from_directory[`${department}`].push(anchor.textContent);
+      continue;
     }
-  );
+    let fields: nameFields;
+    let has_titles: boolean = false;
+    let stripped_name: string | null = null;
+    let split_name: string[];
+
+    // * Handle names with titles
+    if (anchor.textContent.includes(",")) {
+      has_titles = true;
+      const titled_name = anchor.textContent.split(",");
+      stripped_name = titled_name[0];
+      split_name = stripped_name.split(" ");
+    } else {
+      split_name = anchor.textContent.split(" ");
+    }
+
+    // * Handle long names that had titles
+    if (split_name.length > 2 && has_titles) {
+      long_names[`${department}`].push(stripped_name as string);
+      const last_name_split = split_name.slice(1, split_name.length);
+      const lastName = last_name_split.join(" ");
+      fields = {
+        firstName: split_name[0],
+        lastName: lastName,
+      };
+    }
+
+    // * Handle long names without titles
+    else if (split_name.length > 2 && !has_titles) {
+      // * Remove any ending parenthesized substrings, then continue
+      const last_substring = split_name.at(-1);
+      if (last_substring !== undefined && last_substring[0] === "(") {
+        split_name.pop();
+        if (split_name.length > 2) {
+          fields = formatLongNames(long_names, department, split_name, anchor);
+        } else {
+          fields = {
+            firstName: split_name[0],
+            lastName: split_name[1],
+          };
+        }
+      } else {
+        fields = formatLongNames(long_names, department, split_name, anchor);
+      }
+    }
+
+    // * Default handling of names
+    else {
+      fields = {
+        firstName: split_name[0],
+        lastName: split_name[1],
+      };
+    }
+    names.push(fields);
+  }
+
   for (let name of names) {
     facultyCollection.profiles.push(name);
   }
@@ -61,7 +114,12 @@ for (let filename of html_fileNames) {
   await window.happyDOM.close();
 }
 
-// write json files
+// * Write to the output JSON files
 Bun.write("./all_profiles/profiles.json", JSON.stringify(all_profiles));
 Bun.write("./long_names/longnames.json", JSON.stringify(long_names));
-console.log("Long Names:", long_names);
+Bun.write(
+  "./missing_profiles/missingprofiles.json",
+  JSON.stringify(missing_from_directory)
+);
+console.clear();
+console.log("Finished processing.");

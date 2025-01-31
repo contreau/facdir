@@ -8,6 +8,6 @@ export type facultyCollection = {
   profiles: Array<nameFields>;
 };
 
-export type longNames = {
+export type namesByDepartment = {
   [key: string]: string[];
 };
