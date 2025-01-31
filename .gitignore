@@ -2,9 +2,10 @@ notes.txt
 
 # Directories
 
+all_profiles
+directory_data
 html
-all_profiles/
-long_names/
+long_names
 missing_profiles
 
 # Logs
