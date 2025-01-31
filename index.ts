@@ -6,7 +6,7 @@ import { checkDirectory, formatLongNames } from "./helpers";
 
 // * Gather all html file names into one array
 const html_fileNames: string[] = [];
-const html_dir = await readdir("./html");
+const html_dir = await readdir("./html/input");
 for (let file of html_dir) {
   html_fileNames.push(file);
 }
@@ -14,7 +14,7 @@ for (let file of html_dir) {
 // * Data to be written to JSON
 const all_profiles: Array<facultyCollection> = [];
 const long_names: namesByDepartment = {};
-const missing_from_directory: namesByDepartment = {};
+const missing_profiles: namesByDepartment = {};
 
 // * BEGIN FILE PROCESSING
 console.clear();
@@ -23,7 +23,7 @@ for (let filename of html_fileNames) {
     department: "",
     profiles: [],
   };
-  const file = Bun.file(`./html/${filename}`);
+  const file = Bun.file(`./html/input/${filename}`);
   console.log(`Processing ${filename}...`);
   const file_text = await file.text();
   const department = filename.split(".html")[0];
@@ -32,8 +32,8 @@ for (let filename of html_fileNames) {
   if (!long_names[`${department}`]) {
     long_names[`${department}`] = [];
   }
-  if (!missing_from_directory[`${department}`]) {
-    missing_from_directory[`${department}`] = [];
+  if (!missing_profiles[`${department}`]) {
+    missing_profiles[`${department}`] = [];
   }
   facultyCollection.department = department;
 
@@ -49,7 +49,7 @@ for (let filename of html_fileNames) {
     const anchor = a as unknown as HTMLAnchorElement;
     const inDirectory: boolean = await checkDirectory(anchor.href);
     if (!inDirectory) {
-      missing_from_directory[`${department}`].push(anchor.textContent);
+      missing_profiles[`${department}`].push(anchor.textContent);
       continue;
     }
     let fields: nameFields;
@@ -119,7 +119,7 @@ Bun.write("./all_profiles/profiles.json", JSON.stringify(all_profiles));
 Bun.write("./long_names/longnames.json", JSON.stringify(long_names));
 Bun.write(
   "./missing_profiles/missingprofiles.json",
-  JSON.stringify(missing_from_directory)
+  JSON.stringify(missing_profiles)
 );
 console.clear();
 console.log("Finished processing.");
