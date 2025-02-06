@@ -4,9 +4,16 @@ import type { HTMLAnchorElement } from "happy-dom/src/index.ts";
 import type { nameFields, facultyCollection, namesByDepartment } from "./types";
 import { checkDirectory, formatLongNames } from "./helpers";
 
+// ? ABOUT THIS SCRIPT
+// This file iterates through and parses all html files in the html/input directory and generates several JSON files:
+// A complete list of profiles by department (all_profiles)
+// Any multi-part or long names that need to be manually edited (long_names)
+// Missing profiles that can be deleted from the original HTML
+
+// * SCRIPT START
 // * Gather all html file names into one array
 const html_fileNames: string[] = [];
-const html_dir = await readdir("./html/input");
+const html_dir = await readdir("html/input");
 for (let file of html_dir) {
   html_fileNames.push(file);
 }
@@ -23,7 +30,7 @@ for (let filename of html_fileNames) {
     department: "",
     profiles: [],
   };
-  const file = Bun.file(`./html/input/${filename}`);
+  const file = Bun.file(`html/input/${filename}`);
   console.log(`Processing ${filename}...`);
   const file_text = await file.text();
   const department = filename.split(".html")[0];
@@ -115,10 +122,10 @@ for (let filename of html_fileNames) {
 }
 
 // * Write to the output JSON files
-Bun.write("./all_profiles/profiles.json", JSON.stringify(all_profiles));
-Bun.write("./long_names/longnames.json", JSON.stringify(long_names));
+Bun.write("all_profiles/profiles.json", JSON.stringify(all_profiles));
+Bun.write("long_names/longnames.json", JSON.stringify(long_names));
 Bun.write(
-  "./missing_profiles/missingprofiles.json",
+  "missing_profiles/missingprofiles.json",
   JSON.stringify(missing_profiles)
 );
 console.clear();
