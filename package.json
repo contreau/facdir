@@ -2,6 +2,10 @@
   "name": "link-replace",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "input": "bun run src/process_input/process.ts",
+    "output": "bun run src/output_html/match_names.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
