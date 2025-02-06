@@ -20,7 +20,7 @@ export function formatLongNames(
   const first_name_split = split_name.slice(0, split_name.length - 1);
   const firstName = first_name_split.join(" ");
   return {
-    firstName: firstName,
-    lastName: split_name.at(-1) as string,
+    FirstName: firstName,
+    LastName: split_name.at(-1) as string,
   };
 }

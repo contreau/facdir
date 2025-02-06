@@ -1,6 +1,6 @@
 export type nameFields = {
-  firstName: string;
-  lastName: string;
+  FirstName: string;
+  LastName: string;
 };
 
 export type facultyCollection = {

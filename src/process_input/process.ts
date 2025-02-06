@@ -80,8 +80,8 @@ for (let filename of html_fileNames) {
       const last_name_split = split_name.slice(1, split_name.length);
       const lastName = last_name_split.join(" ");
       fields = {
-        firstName: split_name[0],
-        lastName: lastName,
+        FirstName: split_name[0],
+        LastName: lastName,
       };
     }
 
@@ -95,8 +95,8 @@ for (let filename of html_fileNames) {
           fields = formatLongNames(long_names, department, split_name, anchor);
         } else {
           fields = {
-            firstName: split_name[0],
-            lastName: split_name[1],
+            FirstName: split_name[0],
+            LastName: split_name[1],
           };
         }
       } else {
@@ -107,8 +107,8 @@ for (let filename of html_fileNames) {
     // * Default handling of names
     else {
       fields = {
-        firstName: split_name[0],
-        lastName: split_name[1],
+        FirstName: split_name[0],
+        LastName: split_name[1],
       };
     }
     names.push(fields);
