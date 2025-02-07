@@ -5,10 +5,10 @@ import type { nameFields, facultyCollection, namesByDepartment } from "./types";
 import { checkDirectory, formatLongNames } from "./helpers";
 
 // ? ABOUT THIS SCRIPT
-// This file iterates through and parses all html files in the html/input directory and generates several JSON files:
-// A complete list of profiles by department (all_profiles)
-// Any multi-part or long names that need to be manually edited (long_names)
-// Missing profiles that can be deleted from the original HTML
+// This file iterates through and parses all html files in the html/input directory and generates the following JSON files:
+// - A complete list of profiles by department (all_profiles)
+// - Any multi-part or long names that need to be manually edited (long_names)
+// - Missing profiles that can be deleted from the original HTML
 
 // * Gather all html file names into one array
 const html_fileNames: string[] = [];
@@ -79,13 +79,7 @@ async function process_inputHTML(directory: string[]) {
 
       // * Handle long names that had titles
       if (split_name.length > 2 && has_titles) {
-        long_names[`${department}`].push(stripped_name as string);
-        const last_name_split = split_name.slice(1, split_name.length);
-        const lastName = last_name_split.join(" ");
-        fields = {
-          FirstName: split_name[0],
-          LastName: lastName,
-        };
+        fields = formatLongNames(long_names, department, split_name, anchor);
       }
 
       // * Handle long names without titles
