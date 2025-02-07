@@ -16,7 +16,11 @@ export function formatLongNames(
   split_name: string[],
   anchor: HTMLAnchorElement
 ) {
-  names_data[`${department}`].push(anchor.textContent as string);
+  if (anchor.textContent.includes(",")) {
+    names_data[`${department}`].push(split_name.join(" "));
+  } else {
+    names_data[`${department}`].push(anchor.textContent as string);
+  }
   const first_name_split = split_name.slice(0, split_name.length - 1);
   const firstName = first_name_split.join(" ");
   return {
