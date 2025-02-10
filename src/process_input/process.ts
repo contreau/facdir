@@ -1,7 +1,12 @@
 import { readdir } from "node:fs/promises";
 import { Window } from "happy-dom";
-import type { HTMLAnchorElement } from "happy-dom/src/index.ts";
-import type { nameFields, facultyCollection, namesByDepartment } from "./types";
+import { HTMLAnchorElement } from "happy-dom/src/index.ts";
+import type {
+  nameFields,
+  facultyCollection,
+  namesByDepartment,
+  profileURLs,
+} from "./types";
 import { checkDirectory, formatLongNames } from "./helpers";
 
 // ? ABOUT THIS SCRIPT
@@ -62,6 +67,11 @@ async function process_inputHTML(directory: string[]) {
         missing_profiles[`${department}`].push(anchor.textContent);
         continue;
       }
+
+      const urls: profileURLs = {
+        profile_url: anchor.href,
+        email_url: parse_emailURL(anchor),
+      };
       let fields: nameFields;
       let has_titles: boolean = false;
       let stripped_name: string | null = null;
@@ -79,7 +89,13 @@ async function process_inputHTML(directory: string[]) {
 
       // * Handle long names that had titles
       if (split_name.length > 2 && has_titles) {
-        fields = formatLongNames(long_names, department, split_name, anchor);
+        fields = formatLongNames(
+          long_names,
+          department,
+          split_name,
+          anchor,
+          urls
+        );
       }
 
       // * Handle long names without titles
@@ -93,16 +109,25 @@ async function process_inputHTML(directory: string[]) {
               long_names,
               department,
               split_name,
-              anchor
+              anchor,
+              urls
             );
           } else {
             fields = {
               FirstName: split_name[0],
               LastName: split_name[1],
+              URL: urls.profile_url,
+              Email: urls.email_url,
             };
           }
         } else {
-          fields = formatLongNames(long_names, department, split_name, anchor);
+          fields = formatLongNames(
+            long_names,
+            department,
+            split_name,
+            anchor,
+            urls
+          );
         }
       }
 
@@ -111,6 +136,8 @@ async function process_inputHTML(directory: string[]) {
         fields = {
           FirstName: split_name[0],
           LastName: split_name[1],
+          URL: urls.profile_url,
+          Email: urls.email_url,
         };
       }
       names.push(fields);
@@ -134,6 +161,22 @@ function write_json() {
   );
   console.clear();
   console.log("Finished processing.");
+}
+
+function parse_emailURL(anchor: HTMLAnchorElement): string | null {
+  // * Retrieve a person's email url or return null
+  const container_div = anchor.parentElement?.parentElement;
+  if (container_div !== null && container_div !== undefined) {
+    const last_child =
+      container_div.children[`${container_div?.children.length - 1}`];
+    const new_anchor = last_child.children[0] as HTMLAnchorElement;
+    if (new_anchor.localName === "a") {
+      return new_anchor.getAttribute("aria-label") === "Send email"
+        ? new_anchor.href
+        : null;
+    }
+  }
+  return null;
 }
 
 // * SCRIPT START

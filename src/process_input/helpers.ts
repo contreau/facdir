@@ -1,4 +1,4 @@
-import type { namesByDepartment } from "./types";
+import type { namesByDepartment, profileURLs } from "./types";
 import type { HTMLAnchorElement } from "happy-dom/src/index.ts";
 
 export async function checkDirectory(profile_url: string): Promise<boolean> {
@@ -14,7 +14,8 @@ export function formatLongNames(
   names_data: namesByDepartment,
   department: string,
   split_name: string[],
-  anchor: HTMLAnchorElement
+  anchor: HTMLAnchorElement,
+  urls: profileURLs
 ) {
   if (anchor.textContent.includes(",")) {
     names_data[`${department}`].push(split_name.join(" "));
@@ -26,5 +27,7 @@ export function formatLongNames(
   return {
     FirstName: firstName,
     LastName: split_name.at(-1) as string,
+    URL: urls.profile_url,
+    Email: urls.email_url,
   };
 }
