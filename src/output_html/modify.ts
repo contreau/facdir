@@ -1,13 +1,15 @@
 import { Window } from "happy-dom";
 import type { Document } from "happy-dom";
 
-interface exportedFacultyData {
+interface directoryDataMember {
   LastName: string;
   FirstName: string;
   FullName: string;
   URL: string;
   Email: string | null;
 }
+
+type directoryData = Record<string, directoryDataMember[]>;
 
 interface profile {
   FirstName: string;
@@ -21,41 +23,44 @@ type profileData = Array<{
   profiles: Array<profile>;
 }>;
 
-// * Read in fac-sample.json
-const file = Bun.file("directory_data/fac-sample.json");
+// * Read in faculty-data-final.json
+const file = Bun.file("directory_data/faculty-data-final.json");
 const text = await file.text();
-const fac_data = JSON.parse(text);
+const directory_data: directoryData = JSON.parse(text);
 
 // * Read in all profile data
 const f2 = Bun.file("all_profiles/final_profiles.json");
 const f2_text = await f2.text();
 const all_profiles: profileData = JSON.parse(f2_text);
 
+// * Array of expected faculty that are missing from faculty-data-final.json
+const missing_faculty: string[] = [];
+
 // * FUNCTIONS
-function log_match(person: profile, match: exportedFacultyData) {
+function log_match(profile: profile, directory_match: directoryDataMember) {
   // * Drop-in console log for name matches
   console.log(
-    `match found: ${person.FirstName} ${person.LastName} | ${match.FirstName} ${match.LastName}: ${match.URL}`
+    `directory_match found: ${profile.FirstName} ${profile.LastName} | ${directory_match.FirstName} ${directory_match.LastName}: ${directory_match.URL}`
   );
 }
 
 async function replace_links(
   document: Document,
-  person: profile,
-  data_match: exportedFacultyData
+  profile: profile,
+  data_match: directoryDataMember
 ) {
   // * Mutate the DOM with the new links
   const all_profileURL_instances = Array.from(
-    document.querySelectorAll(`a[href='${person.URL}']`)
+    document.querySelectorAll(`a[href='${profile.URL}']`)
   );
   const email_anchor = document.querySelector(
-    `a[href='${person.Email}']`
+    `a[href='${profile.Email}']`
   ) as unknown as HTMLAnchorElement | null;
 
   // * Replace hrefs in all profile <a> with new links
   all_profileURL_instances.forEach((node) => {
     const anchor = node as unknown as HTMLAnchorElement;
-    // console.log(`replacing ${person.URL} with ${data_match.URL}`);
+    // console.log(`replacing ${profile.URL} with ${data_match.URL}`);
     anchor.href = data_match.URL;
   });
 
@@ -64,11 +69,28 @@ async function replace_links(
     email_anchor.href = `mailto:${data_match.Email}`;
   } else {
     const email_button_container = document.querySelector(
-      `div.faculty-icon--container:has(a[href='${person.Email}'])`
+      `div.faculty-icon--container:has(a[href='${profile.Email}'])`
     );
-    // console.log(`replacing ${person.Email} with ${data_match.Email}`);
+    // console.log(`replacing ${profile.Email} with ${data_match.Email}`);
     email_button_container?.remove();
   }
+}
+
+function directory_isMissing(data: directoryData, firstName: string, lastName: string): boolean {
+  if (data[lastName] === undefined) {
+    return true;
+  }
+
+  if (data[lastName] !== undefined) {
+    for (const person of data[lastName]) {
+      const directory_firstName_fragment: string = person.FirstName.split(" ")[0];
+      const profile_firstName_fragment: string = firstName.split(" ")[0];
+      if (directory_firstName_fragment === profile_firstName_fragment) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 async function process_html() {
@@ -84,28 +106,27 @@ async function process_html() {
     document.body.innerHTML = html;
 
     // * inner loop
-    for (const person of item.profiles) {
-      // ! This next line stays in until I have the full data
-      if (fac_data[`${person.LastName}`] === undefined) {
+    for (const profile of item.profiles) {
+      // * catches faculty that are in all_profiles (scraped from HTML), but are missing from the directory data export
+      if (directory_isMissing(directory_data, profile.FirstName, profile.LastName)) {
+        missing_faculty.push(`${profile.FirstName} ${profile.LastName}`);
         continue;
       }
-      // ! (Resume)
-      const lastName_matches: Array<exportedFacultyData> =
-        fac_data[`${person.LastName}`];
-      for (const match of lastName_matches) {
-        let given_name: string | string[] = match.FirstName;
-        if (given_name === person.FirstName) {
-          // match found, continue processing
-          // log_match(person, match);
-          await replace_links(document, person, match);
-        } else if (given_name.includes(" ")) {
-          given_name = given_name.split(" ");
-          if (given_name.includes(person.FirstName)) {
-            // match found, continue processing
-            // log_match(person, match);
-            await replace_links(document, person, match);
+      const matches_by_lastName: Array<directoryDataMember> = directory_data[`${profile.LastName}`];
+      for (const directory_match of matches_by_lastName) {
+        if (directory_match.FirstName === profile.FirstName) {
+          // * exact match found, continue processing
+          // log_match(profile, directory_match);
+          await replace_links(document, profile, directory_match);
+        } else if (directory_match.FirstName.includes(" ")) {
+          const directory_firstName_fragment: string = directory_match.FirstName.split(" ")[0];
+          const profile_firstName_fragment: string = profile.FirstName.split(" ")[0];
+          if (directory_firstName_fragment === profile_firstName_fragment) {
+            // * first name match found, continue processing
+            // log_match(profile, directory_match);
+            await replace_links(document, profile, directory_match);
           } else {
-            // jump to the next match in the loop
+            // * jump to the next directory_match in the loop
             continue;
           }
         }
@@ -116,6 +137,7 @@ async function process_html() {
     console.log(`Completed ${department}`);
     await window.happyDOM.close();
   }
+  Bun.write(`missing_data/missing-faculty.json`, JSON.stringify(missing_faculty));
   console.clear();
   console.log("Finished processing. Check html/output for new files.");
 }
