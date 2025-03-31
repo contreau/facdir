@@ -1,12 +1,7 @@
 import { readdir } from "node:fs/promises";
 import { Window } from "happy-dom";
 import { HTMLAnchorElement } from "happy-dom/src/index.ts";
-import type {
-  nameFields,
-  facultyCollection,
-  namesByDepartment,
-  profileURLs,
-} from "./types";
+import type { nameFields, facultyCollection, namesByDepartment, profileURLs } from "./types";
 import { checkDirectory, formatLongNames } from "./helpers";
 
 // ? ABOUT THIS SCRIPT
@@ -56,9 +51,7 @@ async function process_inputHTML(directory: string[]) {
     document.body.innerHTML = file_text;
 
     // * Loop through the <a> tags to process names
-    const name_anchors = Array.from(
-      document.querySelectorAll("p.mdbluetext a")
-    );
+    const name_anchors = Array.from(document.querySelectorAll("p.mdbluetext a"));
     const names: nameFields[] = [];
     for (const a of name_anchors) {
       const anchor = a as unknown as HTMLAnchorElement;
@@ -89,13 +82,7 @@ async function process_inputHTML(directory: string[]) {
 
       // * Handle long names that had titles
       if (split_name.length > 2 && has_titles) {
-        fields = formatLongNames(
-          long_names,
-          department,
-          split_name,
-          anchor,
-          urls
-        );
+        fields = formatLongNames(long_names, department, split_name, anchor, urls);
       }
 
       // * Handle long names without titles
@@ -105,13 +92,7 @@ async function process_inputHTML(directory: string[]) {
         if (last_substring !== undefined && last_substring[0] === "(") {
           split_name.pop();
           if (split_name.length > 2) {
-            fields = formatLongNames(
-              long_names,
-              department,
-              split_name,
-              anchor,
-              urls
-            );
+            fields = formatLongNames(long_names, department, split_name, anchor, urls);
           } else {
             fields = {
               FirstName: split_name[0],
@@ -121,13 +102,7 @@ async function process_inputHTML(directory: string[]) {
             };
           }
         } else {
-          fields = formatLongNames(
-            long_names,
-            department,
-            split_name,
-            anchor,
-            urls
-          );
+          fields = formatLongNames(long_names, department, split_name, anchor, urls);
         }
       }
 
@@ -155,10 +130,7 @@ function write_json() {
   // * Write to the output JSON files
   Bun.write("all_profiles/profiles.json", JSON.stringify(all_profiles));
   Bun.write("long_names/longnames.json", JSON.stringify(long_names));
-  Bun.write(
-    "missing_profiles/missingprofiles.json",
-    JSON.stringify(missing_profiles)
-  );
+  Bun.write("missing_profiles/missingprofiles.json", JSON.stringify(missing_profiles));
   console.clear();
   console.log("Finished processing.");
 }
@@ -167,13 +139,10 @@ function parse_emailURL(anchor: HTMLAnchorElement): string | null {
   // * Retrieve a person's email url or return null
   const container_div = anchor.parentElement?.parentElement;
   if (container_div !== null && container_div !== undefined) {
-    const last_child =
-      container_div.children[`${container_div?.children.length - 1}`];
+    const last_child = container_div.children[`${container_div?.children.length - 1}`];
     const new_anchor = last_child.children[0] as HTMLAnchorElement;
     if (new_anchor.localName === "a") {
-      return new_anchor.getAttribute("aria-label") === "Send email"
-        ? new_anchor.href
-        : null;
+      return new_anchor.getAttribute("aria-label") === "Send email" ? new_anchor.href : null;
     }
   }
   return null;

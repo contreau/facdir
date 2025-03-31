@@ -97,6 +97,8 @@ async function process_html() {
   // * Iterate through all_profiles by department, and process the html file for each
   for (const item of all_profiles) {
     const department = item.department;
+    const file_exists = await Bun.file(`html/input/${department}.html`).exists();
+    if (!file_exists) continue; // go to next iteration if file is missing
     const file = Bun.file(`html/input/${department}.html`);
     const html = await file.text();
     console.log(`Processing ${department}...`);

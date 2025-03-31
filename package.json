@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "input": "bun run src/process_input/process.ts",
-    "output": "bun run src/output_html/modify.ts"
+    "output": "bun run src/output_html/modify.ts",
+    "final": "bun run src/final_touches.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
